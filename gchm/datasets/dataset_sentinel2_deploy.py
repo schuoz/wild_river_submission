@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader, ConcatDataset
 import numpy as np
 import math
+import tables
 
 from gchm.utils.gdal_process import read_sentinel2_bands, create_latlon_mask, get_reference_band_ds_gdal
 
@@ -29,27 +30,33 @@ class Sentinel2Deploy(Dataset):
         self.patch_size = patch_size
         self.border = border
         self.patch_size_no_border = self.patch_size - 2 * self.border
-        self.image, self.tile_info, self.scl, self.cloud = read_sentinel2_bands(data_path=self.path, from_aws=self.from_aws, channels_last=True)
-        self.image_shape_original = self.image.shape
+        #self.image, self.tile_info, self.scl, self.cloud = read_sentinel2_bands(data_path=self.path, from_aws=self.from_aws, channels_last=True) # change here to read hf5 files
+
+        self.images = self.h5_file.root.images
+
+        #self.image_shape_original = self.image.shape
         # pad the image with channels in last dimension
-        self.image = np.pad(self.image, ((self.border, self.border), (self.border, self.border), (0, 0)), mode='symmetric')
+        #self.image = np.pad(self.image, ((self.border, self.border), (self.border, self.border), (0, 0)), mode='symmetric')
         self.patch_coords_dict = self._get_patch_coords()
         self.scl_zero_canopy_height = np.array([5, 6])  # "not vegetated", "water"
         self.scl_exclude_labels = np.array([8, 9, 11, 6])  # CLOUD_MEDIUM_PROBABILITY, CLOUD_HIGH_PROBABILITY, SNOW, water
-        self.scl = np.array(self.scl, dtype=np.uint8)
+        #self.scl = np.array(self.scl, dtype=np.uint8)
         # open a 10m reference band as gdal dataset
-        self.ref_ds = get_reference_band_ds_gdal(path_file=self.path)
+        #self.ref_ds = get_reference_band_ds_gdal(path_file=self.path)
         # creat lat lon masks for entire images (10m resolution)
-        self.lat_mask, self.lon_mask = create_latlon_mask(height=self.ref_ds.RasterYSize, width=self.ref_ds.RasterXSize,
-                                                          refDataset=self.ref_ds)
+        #self.lat_mask, self.lon_mask = create_latlon_mask(height=self.ref_ds.RasterYSize, width=self.ref_ds.RasterXSize,
+        #                                                  refDataset=self.ref_ds)
         # pad lat lon mask to match the padded image
-        self.lat_mask = np.pad(self.lat_mask, ((self.border, self.border), (self.border, self.border)), mode='symmetric')
-        self.lon_mask = np.pad(self.lon_mask, ((self.border, self.border), (self.border, self.border)), mode='symmetric')
+        #self.lat_mask = np.pad(self.lat_mask, ((self.border, self.border), (self.border, self.border)), mode='symmetric')
+        #self.lon_mask = np.pad(self.lon_mask, ((self.border, self.border), (self.border, self.border)), mode='symmetric')
 
-        print('self.image_shape_original: ', self.image_shape_original)
-        print('after padding: self.image.shape: ', self.image.shape)
-        print('after padding: self.lat_mask.shape: ', self.lat_mask.shape)
-        print('after padding: self.lon_mask.shape: ', self.lon_mask.shape)
+        #print('self.image_shape_original: ', self.image_shape_original)
+        #print('after padding: self.image.shape: ', self.image.shape)
+        #print('after padding: self.lat_mask.shape: ', self.lat_mask.shape)
+        #print('after padding: self.lon_mask.shape: ', self.lon_mask.shape)
+
+    def _open_hdf5(self):
+        self.h5_file = tables.open_file(self.path_h5, mode='r')
 
     def _get_patch_coords(self):
         img_rows, img_cols = self.image.shape[0:2]  # last dimension corresponds to channels
@@ -80,21 +87,34 @@ class Sentinel2Deploy(Dataset):
 
     def __getitem__(self, index):
 
+        if isinstance(index, list):
+            index = sorted(index)
+
+        # open the h5 file in the first iteration --> each worker has its own connection
+        if not hasattr(self, 'h5_file'):
+            self._open_hdf5()
+
+        if self.use_cloud_free:
+            index = self.cloud_free_indices[index]
+
+        images = np.array(self.h5_file.root.images[index, ...], dtype=np.float32)
         y_topleft = self.patch_coords_dict[index]['y_topleft']
         x_topleft = self.patch_coords_dict[index]['x_topleft']
 
-        patch = self.image[y_topleft:y_topleft + self.patch_size, x_topleft:x_topleft + self.patch_size, :]
+        #patch = self.image[y_topleft:y_topleft + self.patch_size, x_topleft:x_topleft + self.patch_size, :]
         # cast to float32
-        patch = patch.astype(np.float32)
+        #patch = patch.astype(np.float32)
 
         if self.input_lat_lon:
-            lat = self.lat_mask[y_topleft:y_topleft + self.patch_size, x_topleft:x_topleft + self.patch_size][..., None]
-            lon = self.lon_mask[y_topleft:y_topleft + self.patch_size, x_topleft:x_topleft + self.patch_size][..., None]
+            lat = np.array(self.h5_file.root.lat[index, ...], dtype=np.float32)  # degrees
+            lon = np.array(self.h5_file.root.lon[index, ...], dtype=np.float32)  # degrees
             lon_sin = np.sin(2 * np.pi * lon / 360)
             lon_cos = np.cos(2 * np.pi * lon / 360)
-            inputs = np.concatenate((patch, lat, lon_sin, lon_cos), axis=-1)  # channels last
+            #inputs = np.concatenate((patch, lat, lon_sin, lon_cos), axis=-1)  # channels last
+            inputs = np.concatenate((images, lat, lon_sin, lon_cos), axis=-1)  # channels last
         else:
-            inputs = patch
+            #inputs = patch
+            inputs = images
 
         if self.input_transforms:
             inputs = self.input_transforms(inputs)
