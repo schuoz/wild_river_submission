@@ -41,7 +41,7 @@ def setup_parser():
     parser.add_argument("--max_pool_labels", type=str2bool, nargs='?', const=True, default=False,
                         help="if True: labels are max pooled before supervision (to match GEDI footprint)")
     parser.add_argument("--loss_key", default='MSE', help="Loss name to optimize")
-    parser.add_argument("--weight_key", default=None,
+    parser.add_argument("--weight_key", default=None, #can change here
                         help="Key in the dict returned from the custom dataset class that is used to weight the loss")
     parser.add_argument("--eps", default=0, help="eps added to weights defined by weight_key (this may be set to a small positive number to not forget about the frequent samples)", type=float)
 
@@ -60,6 +60,9 @@ def setup_parser():
     parser.add_argument("--slice_step", default=1, help="If --custom_sampler='SliceBatchSampler': access every slice_step sample in the data array with slice(start, stop, slice_step)", type=int)
     parser.add_argument("--lr_milestones", default=[100, 200], nargs='+', type=int,
                         help="List of epoch indices at which the learning rate is dropped by factor 10. Must be increasing.")
+    parser.add_argument("--use_grad_accum", type=str2bool, nargs='?', const=True, default=False,
+                        help="if True: applies gradient accumulation")
+    parser.add_argument("--accum_num", default=20, help=" if use_grad_accum is TRUE, the total steps for gradient accumulation", type=int)
 
     # fine-tune and re-weighting strategies
     parser.add_argument("--finetune_strategy", default=None,
