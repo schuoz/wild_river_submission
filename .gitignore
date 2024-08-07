@@ -24,3 +24,5 @@ pymp*
 *.lognohup.out
 
 *log
+
+nohup.out
