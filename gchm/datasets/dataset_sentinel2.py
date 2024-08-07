@@ -86,12 +86,16 @@ class Sentinel2PatchesH5(Dataset):
         # square the predictive std to get the predictive variance
         #labels_var = np.square(np.array(self.h5_file.root['count'][index, ...], dtype=np.float32))
 
-        labels_mean = np.array(self.h5_file.root['wildness'][index, ...], dtype=np.float32)
-        labels_mean = np.nanmean(labels_mean)  # Compute the mean, ignoring NaNs
+        labels_mean_array = np.array(self.h5_file.root['wildness'][index, ...], dtype=np.float32)
+        labels_mean = np.nanmean(labels_mean_array, axis=(1,2,3), keepdims=True)
+        
+        #labels_mean = np.nanmean(labels_mean)  # Compute the mean, ignoring NaNs
+        print("label_mean the orignial one", labels_mean, index)
 
         # square the predictive std to get the predictive variance
         labels_var = np.square(np.array(self.h5_file.root['count'][index, ...], dtype=np.float32))
-        labels_var = np.nanvar(labels_var)  # Compute the variance, ignoring NaNs
+        labels_var = np.nanmean(labels_var, axis=(1,2,3), keepdims=True)
+        #labels_var = np.nanvar(labels_var)  # Compute the variance, ignoring NaNs
         #if self.mask_with_scl:
         #    scl = np.array(self.h5_file.root['scl'][index, ...], dtype=np.uint8)
         #    # set not_vegetated and water class to zero canopy height
