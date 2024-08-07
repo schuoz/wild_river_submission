@@ -319,6 +319,8 @@ class Trainer:
 
             total_count_infinite_var = 0
             count_eval_steps = 0
+            accumulation_steps = self.args.accum_num  # Set this to the number of mini-batches to accumulate over
+            step_1 = 0
             self.model.train()
             with tqdm(total=self.args.iterations_per_epoch, ncols=100, desc='train') as pbar:
                 for step, data_dict in enumerate(dl_train):
@@ -374,14 +376,20 @@ class Trainer:
                             #[predictions, labels] = filter_nans_from_tensors(tensors=[predictions, labels], mask_src=labels)
 
                         # Prob. this was needed for classification (resp. semantic segmentation)
+                        # Before squeezing, print the size of predictions
+                        print("Before squeeze, predictions.shape: ", predictions.shape)
 
                         # Squeeze only the necessary dimensions of predictions
                         if len(predictions.shape) > 2:
                             predictions = predictions.squeeze(-1).squeeze(-1).squeeze(-1)
 
-                        # Squeeze only the necessary dimensions of labels
-                        if len(labels.shape) > 1:
+                            # Squeeze all trailing dimensions of size 1 from labels
+                        while len(labels.shape) > 1 and labels.shape[-1] == 1:
                             labels = labels.squeeze(-1)
+
+                        # Squeeze only the necessary dimensions of labels
+                        #if len(labels.shape) > 1:
+                            #labels = labels.squeeze(-1)
 
                         # Print the size of predictions and labels
                         print("predictions.shape: ", predictions.shape)
@@ -395,16 +403,30 @@ class Trainer:
                         else:
                             loss = self.metrics_lookup[self.args.loss_key](predictions, labels)
 
+                        loss = loss / accumulation_steps
+
+
                     # Run backward pass
-                    self.optimizer.zero_grad()
+                    #self.optimizer.zero_grad()
+
                     loss.backward()
 
-                    # optional gradient clippling (total norm of all parameters)
-                    if self.args.max_grad_norm:
-                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.max_grad_norm)
-                    # optional gradient clippling (individual gradient values)
-                    if self.args.max_grad_value:
-                        torch.nn.utils.clip_grad_value_(self.model.parameters(), self.args.max_grad_value)
+                    if ((step_1 + 1) % accumulation_steps == 0):
+                                            # optional gradient clippling (total norm of all parameters)
+                        if self.args.max_grad_norm:
+                            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.max_grad_norm)
+                        # optional gradient clippling (individual gradient values)
+                        if self.args.max_grad_value:
+                            torch.nn.utils.clip_grad_value_(self.model.parameters(), self.args.max_grad_value)
+                        # Update Optimizer
+                        self.optimizer.step()
+                        self.optimizer.zero_grad()
+                    
+                    step_1 += 1
+
+                    print("predictions:" , predictions)
+                    print("labels:", labels)
+
 
                     if self.args.debug:
                         # log gradients
@@ -537,13 +559,17 @@ class Trainer:
                     if len(predictions.shape) > 2:
                         predictions = predictions.squeeze(-1).squeeze(-1).squeeze(-1)
 
-                    # Squeeze only the necessary dimensions of labels
-                    if len(labels.shape) > 1:
+                    while len(labels.shape) > 1 and labels.shape[-1] == 1:
                         labels = labels.squeeze(-1)
+                    # Squeeze only the necessary dimensions of labels
+                    #if len(labels.shape) > 1:
+                        #labels = labels.squeeze(-1)
 
                     # Print the size of predictions and labels
                     print("predictions.shape: ", predictions.shape)
                     print("labels.shape: ", labels.shape)
+                    print("validation predictions:" , predictions)
+                    print("validation labels:", labels)
 
                     if self.args.loss_key in self.classification_loss_names:
                         labels = labels.long()
