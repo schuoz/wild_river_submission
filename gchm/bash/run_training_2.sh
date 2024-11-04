@@ -31,14 +31,16 @@ num_workers=8
 # ----- CONFIGURATION -----
 # Set fine-tune strategy after training from scratch
 finetune_strategy="NONE"          # Train from scratch
-# finetune_strategy="FT_Lm_SRCB"  # Fine-tune model with square root inverse class frequency re-weighting (class-balanced)
+#finetune_strategy="FT_Lm_SRCB"  # Fine-tune model with square root inverse class frequency re-weighting (class-balanced)
 
 do_train=true  # false: run validation only
 
 # architecture
 architecture="xceptionS2_08blocks_256"
 input_lat_lon=False
-long_skip=True
+long_skip=False
+#separate_lat_lon=True
+#max_pool_predictions=False
 
 # dataset
 merged_h5_files=true
@@ -52,30 +54,31 @@ else
 fi
 
 # input patch dimensions
-channels=13
+channels=12
 patch_size=256
 
 # loss
-return_variance=True
-loss_key='GNLL'
+return_variance=False
+loss_key='RMSE'
 
 # optimizer
 optimizer='ADAM'
 base_learning_rate=1e-4
 scheduler='MultiStepLR'
-lr_milestones=( 400 700 )
-max_grad_value=1e3
+lr_milestones=( 200 300 400 500)
+max_grad_value=1e4
 l2_lambda=0
 
-batch_size=18
-nb_epoch=1000  
-iterations_per_epoch=500  # if None: one epoch corresponds to the full dataset len(dl_train)
+batch_size=6
+use_grad_accum=True
+accum_num=4
+nb_epoch=700  
+iterations_per_epoch=75  # if None: one epoch corresponds to the full dataset len(dl_train)
 
 #set the device
-export CUDA_VISIBLE_DEVICES=2,1,7
-
+export CUDA_VISIBLE_DEVICES=3
 # Note that SliceBatchSampler expects the samples to be shuffled already in the h5 file.
-custom_sampler=SliceBatchSampler  # None, SliceBatchSampler, BatchSampler
+custom_sampler=BatchSampler  # None, SliceBatchSampler, BatchSampler
 
 if [ "${merged_h5_files}" = "true" ]; then
     train_tiles=None
@@ -91,7 +94,7 @@ fi
 
 # NOTE: in deploy the model index is expected to start at 0
 n_models=5
-model_idx=14
+model_idx=137
 echo "model_idx: ${model_idx}"
 echo 'h5_dir: ' ${h5_dir}
 
@@ -105,7 +108,7 @@ if [[ "${finetune_strategy}" == "NONE" ]]; then
 else
     echo "Fine-tuning using strategy: ${finetune_strategy}"
     nb_epoch=1150  # this will fine-tune for additional 150 epochs (after 1000 epochs were trained from scratch)
-    base_model_dir=${out_dir}
+    base_model_dir=${GCHM_TRAINING_EXPERIMENT_DIR}/model_36
     out_dir=${base_model_dir}/${finetune_strategy}
 fi
 
@@ -116,7 +119,7 @@ nohup python gchm/train_val.py --out_dir=${out_dir} \
                           --architecture=${architecture} \
                           --do_train=${do_train} \
                           --h5_dir=${h5_dir} \
-                          --num_samples_statistics="1e6" \
+                          --num_samples_statistics="1e3" \
                           --input_lat_lon=${input_lat_lon} \
                           --channels=${channels} \
                           --patch_size=${patch_size} \
@@ -129,13 +132,13 @@ nohup python gchm/train_val.py --out_dir=${out_dir} \
                           --model_weights_path=${model_weights_path} \
                           --nb_epoch=${nb_epoch} \
                           --iterations_per_epoch=${iterations_per_epoch} \
-                          --normalize_targets=False \
+                          --normalize_targets=True \
                           --train_tiles ${train_tiles} \
                           --val_tiles ${val_tiles} \
                           --data_stats_dir=${data_stats_dir} \
                           --weight_key=${weight_key} \
                           --merged_h5_files=${merged_h5_files} \
-                          --region_name="s2_0714_tl" \
+                          --region_name="s2_1104_tl" \
                           --do_profile=False \
                           --max_grad_value=${max_grad_value} \
                           --debug=False \
@@ -143,6 +146,11 @@ nohup python gchm/train_val.py --out_dir=${out_dir} \
                           --scheduler=${scheduler} \
                           --lr_milestones ${lr_milestones[@]} \
                           --l2_lambda=${l2_lambda} \
+                          --use_grad_accum=${use_grad_accum} \
+                          --accum_num=${accum_num} \
                           --finetune_strategy=${finetune_strategy} \
-                          --base_model_dir=${base_model_dir}
+                          --base_model_dir=${base_model_dir} > training_model_137.log &
+                          #--max_pool_predictions=${max_pool_predictions} \
+                          #--separate_lat_lon=${separate_lat_lon} \
+                          
 

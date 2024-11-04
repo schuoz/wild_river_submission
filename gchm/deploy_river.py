@@ -50,6 +50,7 @@ def setup_parser():
     parser.add_argument("--remove_image_after_pred", type=str2bool, nargs='?', const=True, default=False,
                         help="if True: deletes the image after saving the prediction.")
     parser.add_argument("--sentinel2_dir", help="directory to save sentinel2 data (temporarily)")
+    parser.add_argument("--output_csv_file", help="directory to save sentinel2 csv data (temporarily)")
 
     # fine-tune and re-weighting strategies
     # parser.add_argument("--finetune_strategy", default='FT_Lm_SRCB',
@@ -291,9 +292,11 @@ if __name__ == "__main__":
             recomposed_pred['lon'] = pred_dict[k].flatten()
 
     # save the predictions and variances to a csv file
-    csv_path = os.path.join(args.deploy_dir, file_name + 'rmse2.csv')
+    csv_path = os.path.join(args.deploy_dir, file_name + 'single116_256_3.csv')
 
     recomposed_pred.to_csv(csv_path, index=False)
+# batch deployment
+    recomposed_pred.to_csv(args.output_csv_file, index=False)
     # recomposed_tiles = {} # change to save to a table with lon and lat as keys, and prediction score
     # for k in pred_dict:
     #     print('recomposing {} ...'.format(k))
