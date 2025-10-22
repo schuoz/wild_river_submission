@@ -16,10 +16,4 @@ model = xceptionS2_08blocks_256()
 ```
 Please see the [example notebook](gchm/notebooks/example_loading_pretrained_models.ipynb) on how to load the model with the trained weights. 
 
-## Deploying
-
-This is a demo how to run the trained ensemble to compute the canopy height map for a Sentinel-2 tile (approx. 100 km x 100 km).
-
-
-```
 
