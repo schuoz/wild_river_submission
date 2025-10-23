@@ -36,16 +36,3 @@ Create a file called `~/.config_wandb` containing your [weights and biases API k
 ```
 export WANDB_API_KEY=YOUR_API_KEY
 ```
-
-
-### Credentials for AWS
-Optional. This is only needed to download Sentinel-2 images from AWS on the fly using `gchm/deploy.py`. 
-***Note that there are costs per GB downloaded!***
-
-Create a file `~/.aws_configs` containing your AWS credentials as environment variables. 
-```
-export AWS_ACCESS_KEY_ID=PUT_YOUR_KEY_ID_HERE
-export AWS_SECRET_ACCESS_KEY=PUT_YOUR_SECRET_ACCESS_KEY_HERE
-export AWS_REQUEST_PAYER=requester
-```
-To create an AWS account go to: https://aws.amazon.com/console/
