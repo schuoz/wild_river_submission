@@ -14,6 +14,5 @@ from gchm.models.xception_sentinel2 import xceptionS2_08blocks_256
 # load the model with random initialization
 model = xceptionS2_08blocks_256()
 ```
-Please see the [example notebook](gchm/notebooks/example_loading_pretrained_models.ipynb) on how to load the model with the trained weights. 
 
 
