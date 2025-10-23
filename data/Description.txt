@@ -1,3 +1,9 @@
+# Contents
+This repository contains three dataset:
+## The file {\bf ICS-River-edges.gpkg} contains the source data for Fig. 1, providing ICS of each reach of the SWORD river network for the years 2019 to 2024. The geospatial table also contains attributes about the six-year (2019-2024) trend with slope and intercept as well as the results of the Mann-Kendall trend test.\\
+## The file {\bf ICS-Hexagon.gpkg} contains the source data of Fig. 2 and 3 with hexagon aggregated intactness scores for the year 2024 and the number of threatened freshwater species based on IUCN's species red list.
+## The file {\bf Annotation.csv} contains the source data used for model training.
+
 ICS-River-Edges.gpkg: Predicted Intactness scores aggregated for each reach of the SWORD river network. For each reach in the feature class, we have the following attributes: {\bf reach\_id}: SWORD's reach ID, reach averaged ICS from 2019 to 2024 (columns {\bf ICS\_2019}-{\bf ICS\_2024}), and their corresponding Uncertainty ({\bf ICS\_Uncert\_2019}-{\bf ICS\_Uncert\_2024}). Furthermore, for each reach, we report the ICS trend ({\bf TREND}) and the percentage of change ({\bf PERC\_CHANGE}), {\bf MK} stands for the Mann-Kendall test for the trend, {\bf MKPVAL} stands for p-vlaue of the Mann-Kendall test.
 
 ICS-Hexagon.gpkg: Hexagon averaged values of ICS for the year 2019 and 2024 with attributes: {\bf ICS2019} and {\bf ICS2024}, hexagon averaged trend values {\bf AVG\_TREND}, standard deviation of trend within each hexagon {\bf STD\_TREND}, count of reaches in each hexagon {\bf COUNT\_REACHES} and Number of threatened freshwater species ({\bf NUM}).
