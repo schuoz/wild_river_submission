@@ -1,6 +1,6 @@
 # Contents
 This repository contains three dataset:
-## The file {ICS-River-edges.gpkg} contains the source data for Fig. 1, providing ICS of each reach of the SWORD river network for the years 2019 to 2024. The geospatial table also contains attributes about the six-year (2019-2024) trend with slope and intercept as well as the results of the Mann-Kendall trend test.\\
+## The file {ICS-River-edges.gpkg} contains the source data for Fig. 1, providing ICS of each reach of the SWORD river network for the years 2019 to 2024. The geospatial table also contains attributes about the six-year (2019-2024) trend with slope and intercept as well as the results of the Mann-Kendall trend test.
 ## The file {ICS-Hexagon.gpkg} contains the source data of Fig. 2 and 3 with hexagon aggregated intactness scores for the year 2024 and the number of threatened freshwater species based on IUCN's species red list.
 ## The file {Annotation.csv} contains the source data used for model training.
 
